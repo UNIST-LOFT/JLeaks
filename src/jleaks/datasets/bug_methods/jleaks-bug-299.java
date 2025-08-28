@@ -1,0 +1,43 @@
+  public PersistentEnumerator(File file, KeyDescriptor<Data> dataDescriptor, int initialSize) throws IOException {
+    myDataDescriptor = dataDescriptor;
+    myFile = file;
+    if (!file.exists()) {
+      FileUtil.delete(keystreamFile());
+      if (!FileUtil.createIfDoesntExist(file)) {
+        throw new IOException("Cannot create empty file: " + file);
+      }
+    }
+
+    myStorage = new ResizeableMappedFile(myFile, initialSize, ourLock);
+
+    synchronized (ourLock) {
+      if (myStorage.length() == 0) {
+        markDirty(true);
+        putMetaData(0);
+        allocVector(FIRST_VECTOR);
+      }
+      else {
+        int sign;
+        try {
+          sign = myStorage.getInt(0);
+        }
+        catch(Exception e) {
+          LOG.info(e);
+          sign = DIRTY_MAGIC;
+        }
+        if (sign != CORRECTLY_CLOSED_MAGIC) {
+          myStorage.close();
+          throw new CorruptedException(file);
+        }
+      }
+    }
+
+    if (myDataDescriptor instanceof InlineKeyDescriptor) {
+      myKeyStorage = null;
+      myKeyReadStream = null;
+    }
+    else {
+      myKeyStorage = new ResizeableMappedFile(keystreamFile(), initialSize, ourLock);
+      myKeyReadStream = new MyDataIS(myKeyStorage);
+    }
+  }

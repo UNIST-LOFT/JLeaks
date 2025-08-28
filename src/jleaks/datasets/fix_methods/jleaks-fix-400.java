@@ -1,0 +1,23 @@
+public static void toXContent(AliasMetaData aliasMetaData, XContentBuilder builder, ToXContent.Params params) throws IOException 
+{
+    builder.startObject(aliasMetaData.alias(), XContentBuilder.FieldCaseConversion.NONE);
+    boolean binary = params.paramAsBoolean("binary", false);
+    if (aliasMetaData.filter() != null) {
+        if (binary) {
+            builder.field("filter", aliasMetaData.filter.compressed());
+        } else {
+            byte[] data = aliasMetaData.filter().uncompressed();
+            try (XContentParser parser = XContentFactory.xContent(data).createParser(data)) {
+                Map<String, Object> filter = parser.mapOrdered();
+                builder.field("filter", filter);
+            }
+        }
+    }
+    if (aliasMetaData.indexRouting() != null) {
+        builder.field("index_routing", aliasMetaData.indexRouting());
+    }
+    if (aliasMetaData.searchRouting() != null) {
+        builder.field("search_routing", aliasMetaData.searchRouting());
+    }
+    builder.endObject();
+}

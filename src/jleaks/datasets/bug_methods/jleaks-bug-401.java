@@ -1,0 +1,58 @@
+        public static void toXContent(IndexMetaData indexMetaData, XContentBuilder builder, ToXContent.Params params) throws IOException {
+            builder.startObject(indexMetaData.getIndex().getName(), XContentBuilder.FieldCaseConversion.NONE);
+
+            builder.field(KEY_VERSION, indexMetaData.getVersion());
+            builder.field(KEY_STATE, indexMetaData.getState().toString().toLowerCase(Locale.ENGLISH));
+
+            boolean binary = params.paramAsBoolean("binary", false);
+
+            builder.startObject(KEY_SETTINGS);
+            for (Map.Entry<String, String> entry : indexMetaData.getSettings().getAsMap().entrySet()) {
+                builder.field(entry.getKey(), entry.getValue());
+            }
+            builder.endObject();
+
+            builder.startArray(KEY_MAPPINGS);
+            for (ObjectObjectCursor<String, MappingMetaData> cursor : indexMetaData.getMappings()) {
+                if (binary) {
+                    builder.value(cursor.value.source().compressed());
+                } else {
+                    byte[] data = cursor.value.source().uncompressed();
+                    XContentParser parser = XContentFactory.xContent(data).createParser(data);
+                    Map<String, Object> mapping = parser.mapOrdered();
+                    parser.close();
+                    builder.map(mapping);
+                }
+            }
+            builder.endArray();
+
+            for (ObjectObjectCursor<String, Custom> cursor : indexMetaData.getCustoms()) {
+                builder.startObject(cursor.key, XContentBuilder.FieldCaseConversion.NONE);
+                cursor.value.toXContent(builder, params);
+                builder.endObject();
+            }
+
+            builder.startObject(KEY_ALIASES);
+            for (ObjectCursor<AliasMetaData> cursor : indexMetaData.getAliases().values()) {
+                AliasMetaData.Builder.toXContent(cursor.value, builder, params);
+            }
+            builder.endObject();
+
+            builder.startArray(KEY_PRIMARY_TERMS);
+            for (int i = 0; i < indexMetaData.getNumberOfShards(); i++) {
+                builder.value(indexMetaData.primaryTerm(i));
+            }
+            builder.endArray();
+
+            builder.startObject(KEY_ACTIVE_ALLOCATIONS);
+            for (IntObjectCursor<Set<String>> cursor : indexMetaData.activeAllocationIds) {
+                builder.startArray(String.valueOf(cursor.key));
+                for (String allocationId : cursor.value) {
+                    builder.value(allocationId);
+                }
+                builder.endArray();
+            }
+            builder.endObject();
+
+            builder.endObject();
+        }

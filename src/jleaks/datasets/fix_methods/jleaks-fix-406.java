@@ -1,0 +1,13 @@
+public boolean freeContext(long id) 
+{
+    final SearchContext context = activeContexts.remove(id);
+    if (context != null) {
+        try {
+            context.indexShard().searchService().onFreeContext(context);
+        } finally {
+            context.close();
+        }
+        return true;
+    }
+    return false;
+}

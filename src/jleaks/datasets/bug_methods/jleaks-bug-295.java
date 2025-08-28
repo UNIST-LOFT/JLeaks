@@ -1,0 +1,22 @@
+  public static void extractEntry(ZipEntry entry, final InputStream inputStream, File outputDir, boolean overwrite) throws IOException {
+    final boolean isDirectory = entry.isDirectory();
+    final String relativeName = entry.getName();
+    final File file = new File(outputDir, relativeName);
+    if (file.exists() && !overwrite) return;
+
+    FileUtil.createParentDirs(file);
+    if (isDirectory) {
+      file.mkdir();
+    }
+    else {
+      final BufferedInputStream is = new BufferedInputStream(inputStream);
+      final BufferedOutputStream os = new BufferedOutputStream(new FileOutputStream(file));
+      try {
+        FileUtil.copy(is, os);
+      }
+      finally {
+        os.close();
+        is.close();
+      }
+    }
+  }

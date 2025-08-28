@@ -1,0 +1,10 @@
+  public static LinkedList<String> getFileLines(File file) throws IOException {
+    LinkedList<String> lines = new LinkedList<String>();
+    BufferedReader reader = new BufferedReader(new FileReader(file));
+    String line;
+    while ((line = reader.readLine()) != null)
+      lines.add(line);
+
+    reader.close();
+    return lines;
+  }
