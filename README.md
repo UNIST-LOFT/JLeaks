@@ -1,4 +1,42 @@
 # JLeaks: A Featured Resource Leak Repository Collected From Hundreds of Open-Source Java Projects
+This repository is modified version of original JLeaks repository, which can be found at: https://github.com/Dcollectors/JLeaks.
+
+We added a JSON file to parse the data more easily.
+It is located in `src/jleaks/resources/jleaks.json`.
+
+We also added a Defects4j-style framework to use JLeaks more easily.
+
+## To install
+We does not support installing package yet.
+You can clone the repository and add `PYTHONPATH` environment variable to use it.
+
+```bash
+git clone https://github.com/UNIST-LOFT/JLeaks.git
+cd JLeaks
+export PYTHONPATH=$PYTHONPATH:$PWD/src
+```
+
+## How to use
+Basically, you can run `jleaks` module with python.
+```bash
+python3 -m jleaks <sub-command> [options...]
+```
+
+Currently, we support the sub-commands below:
+- `info`: Show the summary of JLeaks dataset or a single leak.
+
+### `info`
+Show the summary of JLeaks dataset or a single leak.
+```bash
+python3 -m jleaks info [-l|--leak-id LEAK_ID]
+```
+
+If you do not provide `--leak-id` option, it shows the number of leaks per project.
+On the other hand, if you provide `--leak-id` option, it shows the detailed information of the leak.
+
+# README from original JLeaks
+
+# JLeaks: A Featured Resource Leak Repository Collected From Hundreds of Open-Source Java Projects
 JLeaks is a resource leaks repository collected from real-world projects which facilitates in-depth researches and evaluation of defect-related algorithms. Each defect in Leaks includes four aspects key information: project information, defect information, code characteristics, and file information. We will continuously update the repository as much as possible.
 
 - [Repository Structure](#repository-structure)
