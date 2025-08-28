@@ -1,0 +1,27 @@
+protected ShardSuggestResponse shardOperation(ShardSuggestRequest request) throws ElasticSearchException 
+{
+    IndexService indexService = indicesService.indexServiceSafe(request.index());
+    IndexShard indexShard = indexService.shardSafe(request.shardId());
+    final Engine.Searcher searcher = indexShard.searcher();
+    XContentParser parser = null;
+    try {
+        BytesReference suggest = request.suggest();
+        if (suggest != null && suggest.length() > 0) {
+            parser = XContentFactory.xContent(suggest).createParser(suggest);
+            if (parser.nextToken() != XContentParser.Token.START_OBJECT) {
+                throw new ElasticSearchIllegalArgumentException("suggest content missing");
+            }
+            final SuggestionSearchContext context = suggestPhase.parseElement().parseInternal(parser, indexService.mapperService());
+            final Suggest result = suggestPhase.execute(context, searcher.reader());
+            return new ShardSuggestResponse(request.index(), request.shardId(), result);
+        }
+        return new ShardSuggestResponse(request.index(), request.shardId(), new Suggest());
+    } catch (Throwable ex) {
+        throw new ElasticSearchException("failed to execute suggest", ex);
+    } finally {
+        searcher.release();
+        if (parser != null) {
+            parser.close();
+        }
+    }
+}

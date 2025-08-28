@@ -1,0 +1,36 @@
+    private Query newPossiblyAnalyzedQuery(String field, String termStr) {
+        TokenStream source;
+        try {
+            source = getAnalyzer().tokenStream(field, termStr);
+            source.reset();
+        } catch (IOException e) {
+            return new PrefixQuery(new Term(field, termStr));
+        }
+        List<String> tlist = new ArrayList<>();
+        CharTermAttribute termAtt = source.addAttribute(CharTermAttribute.class);
+        while (true) {
+            try {
+                if (!source.incrementToken()) {
+                    break;
+                }
+            } catch (IOException e) {
+                break;
+            }
+            tlist.add(termAtt.toString());
+        }
+        try {
+            source.close();
+        } catch (IOException e) {
+            // ignore
+        }
+        if (tlist.size() == 1) {
+            return new PrefixQuery(new Term(field, tlist.get(0)));
+        } else {
+            // build a boolean query with prefix on each one...
+            BooleanQuery bq = new BooleanQuery();
+            for (String token : tlist) {
+                bq.add(new BooleanClause(new PrefixQuery(new Term(field, token)), BooleanClause.Occur.SHOULD));
+            }
+            return bq;
+        }
+    }

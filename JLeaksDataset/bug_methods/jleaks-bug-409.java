@@ -1,0 +1,50 @@
+        public static void toXContent(IndexTemplateMetaData indexTemplateMetaData, XContentBuilder builder, ToXContent.Params params) throws IOException {
+            builder.startObject(indexTemplateMetaData.name(), XContentBuilder.FieldCaseConversion.NONE);
+
+            builder.field("order", indexTemplateMetaData.order());
+            builder.field("template", indexTemplateMetaData.template());
+
+            builder.startObject("settings");
+            indexTemplateMetaData.settings().toXContent(builder, params);
+            builder.endObject();
+
+            if (params.paramAsBoolean("reduce_mappings", false)) {
+                builder.startObject("mappings");
+                for (ObjectObjectCursor<String, CompressedXContent> cursor : indexTemplateMetaData.mappings()) {
+                    byte[] mappingSource = cursor.value.uncompressed();
+                    XContentParser parser = XContentFactory.xContent(mappingSource).createParser(mappingSource);
+                    Map<String, Object> mapping = parser.map();
+                    if (mapping.size() == 1 && mapping.containsKey(cursor.key)) {
+                        // the type name is the root value, reduce it
+                        mapping = (Map<String, Object>) mapping.get(cursor.key);
+                    }
+                    builder.field(cursor.key);
+                    builder.map(mapping);
+                }
+                builder.endObject();
+            } else {
+                builder.startArray("mappings");
+                for (ObjectObjectCursor<String, CompressedXContent> cursor : indexTemplateMetaData.mappings()) {
+                    byte[] data = cursor.value.uncompressed();
+                    try (XContentParser parser = XContentFactory.xContent(data).createParser(data)) {
+                        Map<String, Object> mapping = parser.mapOrdered();
+                        builder.map(mapping);
+                    }
+                }
+                builder.endArray();
+            }
+
+            for (ObjectObjectCursor<String, IndexMetaData.Custom> cursor : indexTemplateMetaData.customs()) {
+                builder.startObject(cursor.key, XContentBuilder.FieldCaseConversion.NONE);
+                cursor.value.toXContent(builder, params);
+                builder.endObject();
+            }
+
+            builder.startObject("aliases");
+            for (ObjectCursor<AliasMetaData> cursor : indexTemplateMetaData.aliases().values()) {
+                AliasMetaData.Builder.toXContent(cursor.value, builder, params);
+            }
+            builder.endObject();
+
+            builder.endObject();
+        }

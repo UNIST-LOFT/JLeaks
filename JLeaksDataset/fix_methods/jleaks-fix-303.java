@@ -1,0 +1,77 @@
+public void startBuild(String projectPath, Set<String> modules, final BuildParameters params, final MessageHandler msgHandler) throws Throwable
+{
+    final String projectName = getProjectName(projectPath);
+    BuildType buildType = params.buildType;
+    Project project;
+    synchronized (myConfigurationLock) {
+        project = myProjects.get(projectPath);
+        if (project == null) {
+            project = loadProject(projectPath, params);
+            myProjects.put(projectPath, project);
+        }
+    }
+    Mappings mappings = null;
+    final File mappingsRoot = Paths.getMappingsStorageRoot(projectName);
+    final File mappingsStorageFile = Paths.getMappingsStorageFile(projectName);
+    try {
+        final BufferedReader reader = new BufferedReader(new InputStreamReader(new DeflaterInputStream(new FileInputStream(mappingsStorageFile))));
+        try {
+            mappings = new Mappings(mappingsRoot, reader);
+        } finally {
+            reader.close();
+        }
+    } catch (FileNotFoundException e) {
+        mappings = new Mappings(mappingsRoot);
+    } catch (IOException e) {
+        FileUtil.delete(mappingsRoot);
+        msgHandler.processMessage(new CompilerMessage(IncProjectBuilder.JPS_SERVER_NAME, BuildMessage.Kind.WARNING, "Problems reading dependency information, rebuild required: " + e.getMessage()));
+        mappings = new Mappings(mappingsRoot);
+        buildType = BuildType.REBUILD;
+    }
+    try {
+        final List<Module> toCompile = new ArrayList<Module>();
+        if (modules != null && modules.size() > 0) {
+            for (Module m : project.getModules().values()) {
+                if (modules.contains(m.getName())) {
+                    toCompile.add(m);
+                }
+            }
+        } else {
+            toCompile.addAll(project.getModules().values());
+        }
+        final CompileScope compileScope = new CompileScope(project, toCompile);
+        final IncProjectBuilder builder = new IncProjectBuilder(projectName, project, mappings, BuilderRegistry.getInstance());
+        if (msgHandler != null) {
+            builder.addMessageHandler(msgHandler);
+        }
+        switch(buildType) {
+            case REBUILD:
+                builder.build(compileScope, false);
+                break;
+            case MAKE:
+                builder.build(compileScope, true);
+                break;
+            case CLEAN:
+                // todo[nik]
+                // new ProjectBuilder(new GantBinding(), project).clean();
+                break;
+        }
+    } finally {
+        if (mappings != null) {
+            final File mappingsDataFile = Paths.getMappingsStorageFile(projectName);
+            try {
+                FileUtil.createIfDoesntExist(mappingsDataFile);
+                final BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new DeflaterOutputStream(new FileOutputStream(mappingsDataFile))));
+                try {
+                    mappings.write(writer);
+                } finally {
+                    writer.close();
+                }
+            } catch (IOException e) {
+                msgHandler.processMessage(new CompilerMessage(IncProjectBuilder.JPS_SERVER_NAME, BuildMessage.Kind.WARNING, e.getMessage()));
+            } finally {
+                mappings.close();
+            }
+        }
+    }
+}

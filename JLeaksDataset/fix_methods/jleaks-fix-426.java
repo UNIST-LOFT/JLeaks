@@ -1,0 +1,79 @@
+public int runMainWithExitCode(File projectRoot, Optional<NGContext> context, String... args) throws IOException 
+{
+    if (args.length == 0) {
+        return usage();
+    }
+    // Create common command parameters. projectFilesystem initialization looks odd because it needs
+    // ignorePaths from a BuckConfig instance, which in turn needs a ProjectFilesystem (i.e. this
+    // solves a bootstrapping issue).
+    ProjectFilesystem projectFilesystem = new ProjectFilesystem(projectRoot, createBuckConfig(new ProjectFilesystem(projectRoot), platform).getIgnorePaths());
+    BuckConfig config = createBuckConfig(projectFilesystem, platform);
+    Verbosity verbosity = VerbosityParser.parse(args);
+    Optional<String> color;
+    if (context.isPresent() && (context.get().getEnv() != null)) {
+        String colorString = context.get().getEnv().getProperty(BUCKD_COLOR_DEFAULT_ENV_VAR);
+        color = Optional.fromNullable(colorString);
+    } else {
+        color = Optional.absent();
+    }
+    final Console console = new Console(verbosity, stdOut, stdErr, config.createAnsi(color));
+    KnownBuildRuleTypes knownBuildRuleTypes = new KnownBuildRuleTypes();
+    // Create or get and invalidate cached command parameters.
+    Parser parser;
+    if (context.isPresent()) {
+        // Wire up daemon to new client and console and get cached Parser.
+        Daemon daemon = getDaemon(projectFilesystem, config, console);
+        daemon.watchClient(context.get());
+        daemon.watchFileSystem(console);
+        // TODO(user): avoid webserver initialization on each command?
+        daemon.initWebServer();
+        parser = daemon.getParser();
+    } else {
+        // Initialize logging and create new Parser for new process.
+        JavaUtilsLoggingBuildListener.ensureLogFileIsWritten();
+        parser = new Parser(projectFilesystem, knownBuildRuleTypes, console, config.getPythonInterpreter(), config.getTempFilePatterns(), createRuleKeyBuilderFactory(config, new DefaultFileHashCache(projectFilesystem, console)));
+    }
+    Clock clock = new DefaultClock();
+    // Find and execute command.
+    Optional<Command> command = Command.getCommandForName(args[0], console);
+    if (command.isPresent()) {
+        String buildId = MoreStrings.createRandomString();
+        try (BuckEventBus buildEventBus = new BuckEventBus(clock, buildId)) {
+            ImmutableList<BuckEventListener> eventListeners = addEventListeners(buildEventBus, clock, projectFilesystem, console, config, getWebServerIfDaemon(context));
+            String[] remainingArgs = new String[args.length - 1];
+            System.arraycopy(args, 1, remainingArgs, 0, remainingArgs.length);
+            Command executingCommand = command.get();
+            String commandName = executingCommand.name().toLowerCase();
+            buildEventBus.post(CommandEvent.started(commandName, context.isPresent()));
+            // The ArtifactCache is constructed lazily so that we do not try to connect to Cassandra when
+            // running commands such as `buck clean`.
+            ArtifactCacheFactory artifactCacheFactory = new ArtifactCacheFactory() {
+
+                @Override
+                public ArtifactCache newInstance(AbstractCommandOptions options) {
+                    if (options.isNoCache()) {
+                        return new NoopArtifactCache();
+                    } else {
+                        buildEventBus.post(ArtifactCacheConnectEvent.started());
+                        ArtifactCache artifactCache = new LoggingArtifactCacheDecorator(buildEventBus).decorate(options.getBuckConfig().createArtifactCache(buildEventBus));
+                        buildEventBus.post(ArtifactCacheConnectEvent.finished());
+                        return artifactCache;
+                    }
+                }
+            };
+            int exitCode = executingCommand.execute(remainingArgs, config, new CommandRunnerParams(console, projectFilesystem, new KnownBuildRuleTypes(), artifactCacheFactory, buildEventBus, parser, platform));
+            buildEventBus.post(CommandEvent.finished(commandName, context.isPresent(), exitCode));
+            for (BuckEventListener eventListener : eventListeners) {
+                eventListener.outputTrace();
+            }
+            return exitCode;
+        }
+    } else {
+        int exitCode = new GenericBuckOptions(stdOut, stdErr).execute(args);
+        if (exitCode == GenericBuckOptions.SHOW_MAIN_HELP_SCREEN_EXIT_CODE) {
+            return usage();
+        } else {
+            return exitCode;
+        }
+    }
+}

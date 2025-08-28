@@ -1,0 +1,105 @@
+public void run() 
+{
+    boolean retry = false;
+    Block block = null;
+    int retryCount = 0;
+    if (DEBUG) {
+        Log.d(TAG, mId + ":recovered: " + mMission.recovered);
+    }
+    SharpStream f;
+    try {
+        f = mMission.storage.getStream();
+    } catch (IOException e) {
+        // this never should happen
+        mMission.notifyError(e);
+        return;
+    }
+    while (mMission.running && mMission.errCode == DownloadMission.ERROR_NOTHING) {
+        if (!retry) {
+            block = mMission.acquireBlock();
+        }
+        if (block == null) {
+            if (DEBUG)
+                Log.d(TAG, mId + ":no more blocks left, exiting");
+            break;
+        }
+        if (DEBUG) {
+            if (retry)
+                Log.d(TAG, mId + ":retry block at position=" + block.position + " from the start");
+            else
+                Log.d(TAG, mId + ":acquired block at position=" + block.position + " done=" + block.done);
+        }
+        long start = block.position * DownloadMission.BLOCK_SIZE;
+        long end = start + DownloadMission.BLOCK_SIZE - 1;
+        start += block.done;
+        if (end >= mMission.length) {
+            end = mMission.length - 1;
+        }
+        try {
+            mConn = mMission.openConnection(mId, start, end);
+            mMission.establishConnection(mId, mConn);
+            // check if the download can be resumed
+            if (mConn.getResponseCode() == 416) {
+                if (block.done > 0) {
+                    // try again from the start (of the block)
+                    block.done = 0;
+                    retry = true;
+                    mConn.disconnect();
+                    continue;
+                }
+                throw new DownloadMission.HttpError(416);
+            }
+            retry = false;
+            // The server may be ignoring the range request
+            if (mConn.getResponseCode() != 206) {
+                if (DEBUG) {
+                    Log.e(TAG, mId + ":Unsupported " + mConn.getResponseCode());
+                }
+                mMission.notifyError(new DownloadMission.HttpError(mConn.getResponseCode()));
+                break;
+            }
+            f.seek(mMission.offsets[mMission.current] + start);
+            try (InputStream is = mConn.getInputStream()) {
+                byte[] buf = new byte[DownloadMission.BUFFER_SIZE];
+                int len;
+                while (start < end && mMission.running && (len = is.read(buf, 0, buf.length)) != -1) {
+                    f.write(buf, 0, len);
+                    start += len;
+                    block.done += len;
+                    mMission.notifyProgress(len);
+                }
+            }
+            if (DEBUG && mMission.running) {
+                Log.d(TAG, mId + ":position " + block.position + " stopped " + start + "/" + end);
+            }
+        } catch (Exception e) {
+            if (!mMission.running || e instanceof ClosedByInterruptException)
+                break;
+            if (retryCount++ >= mMission.maxRetry) {
+                mMission.notifyError(e);
+                break;
+            }
+            retry = true;
+        } finally {
+            if (!retry)
+                releaseBlock(block, end - start);
+        }
+    }
+    try {
+        f.close();
+    } catch (Exception err) {
+        // ¿ejected media storage?  ¿file deleted?  ¿storage ran out of space?
+    }
+    if (DEBUG) {
+        Log.d(TAG, "thread " + mId + " exited from main download loop");
+    }
+    if (mMission.errCode == DownloadMission.ERROR_NOTHING && mMission.running) {
+        if (DEBUG) {
+            Log.d(TAG, "no error has happened, notifying");
+        }
+        mMission.notifyFinished();
+    }
+    if (DEBUG && !mMission.running) {
+        Log.d(TAG, "The mission has been paused. Passing.");
+    }
+}
