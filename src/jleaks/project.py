@@ -188,6 +188,7 @@ Inter-procedural?:\t{self.is_interprocedural}
             print(f'Checking out buggy version...')
             buggy_file_path = os.path.join(os.path.dirname(__file__), 'datasets', 'bug_files', f'jleaks-bug-{self.jleaks_id}.java')
             shutil.copy(buggy_file_path, os.path.join(workdir, self.buggy_file))
+            print(f'Buggy version checked out.')
         
         if log_file:
             log.close()
