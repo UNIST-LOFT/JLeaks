@@ -1340,7 +1340,7 @@
         "overall_id": 90,
         "url": "https://github.com/dbeaver/dbeaver",
         "fixed_commit": "e9e834121aa7e0bd4016a52917797a887d2198ad",
-        "method": "plugins/org.jkiss.dbeaver.data.transfer/src/org/jkiss/dbeaver/tools/transfer/stream/importer/DataImporterCSV.java",
+        "method": "plugins/org.jkiss.dbeaver.data.transfer/src/org/jkiss/dbeaver/tools/transfer/stream/importer/DataImporterCSV.java:runImport",
         "leak_type": "socket",
         "root_cause": "noCloseRPath",
         "patch_pattern": "CloseInFinally",
@@ -1970,7 +1970,7 @@
         "overall_id": 132,
         "url": "https://github.com/apache/hbase",
         "fixed_commit": "8e2a8cc0a8c3ca84c7f44bcb7c1ab661681a5e99",
-        "method": "hbase-server/src/main/java/org/apache/hadoop/hbase/master/MasterCoprocessorHost.java,preShutdown",
+        "method": "hbase-server/src/main/java/org/apache/hadoop/hbase/master/MasterCoprocessorHost.java:preShutdown",
         "leak_type": "thread",
         "root_cause": "noCloseRPath",
         "patch_pattern": "CloseOnRPath",
@@ -2780,7 +2780,7 @@
         "overall_id": 186,
         "url": "https://github.com/apache/netbeans",
         "fixed_commit": "58dd59082604c71a016e641cd99f701ce513277f",
-        "method": "enterprise/tomcat5/src/org/netbeans/modules/tomcat5/deploy/TomcatManagerImpl.javacreateTempContextXml",
+        "method": "enterprise/tomcat5/src/org/netbeans/modules/tomcat5/deploy/TomcatManagerImpl.java:createTempContextXml",
         "leak_type": "file",
         "root_cause": "noCloseEPath",
         "patch_pattern": "try-with",
@@ -12014,13 +12014,13 @@
         "var_attr": "anonymous variable",
         "is_interprocedural": false
     },
-    "OsmAnd_1": {
-        "project": "OsmAnd",
+    "Osmand_1": {
+        "project": "Osmand",
         "id": 1,
         "overall_id": 802,
-        "url": "https://github.com/osmandapp/OsmAnd",
+        "url": "https://github.com/osmandapp/Osmand",
         "fixed_commit": "6fb261325aacf609a1257b62f51b00c07f6f396d",
-        "method": "OsmAnd/src/net/osmand/plus/SpecialPhrases.java:setLanguage",
+        "method": "Osmand/src/net/osmand/plus/SpecialPhrases.java:setLanguage",
         "leak_type": "file",
         "root_cause": "noCloseEPath",
         "patch_pattern": "CloseInFinally",
@@ -12029,9 +12029,9 @@
         "var_attr": "local variable",
         "is_interprocedural": false
     },
-    "Osmand_1": {
+    "Osmand_2": {
         "project": "Osmand",
-        "id": 1,
+        "id": 2,
         "overall_id": 803,
         "url": "https://github.com/osmandapp/Osmand",
         "fixed_commit": "3a89872536fbbbddccba2a7210e5f5ccd77ad0de",
@@ -12044,9 +12044,9 @@
         "var_attr": "local variable",
         "is_interprocedural": false
     },
-    "Osmand_2": {
+    "Osmand_3": {
         "project": "Osmand",
-        "id": 2,
+        "id": 3,
         "overall_id": 804,
         "url": "https://github.com/osmandapp/Osmand",
         "fixed_commit": "cc10aefa53632a549462be30e054a4abd8fc4795",
@@ -12059,9 +12059,9 @@
         "var_attr": "local variable",
         "is_interprocedural": false
     },
-    "Osmand_3": {
+    "Osmand_4": {
         "project": "Osmand",
-        "id": 3,
+        "id": 4,
         "overall_id": 805,
         "url": "https://github.com/osmandapp/Osmand",
         "fixed_commit": "376bc2217bb4c38809981fdcd3e8353a06d4c281",
@@ -12074,9 +12074,9 @@
         "var_attr": "local variable",
         "is_interprocedural": false
     },
-    "Osmand_4": {
+    "Osmand_5": {
         "project": "Osmand",
-        "id": 4,
+        "id": 5,
         "overall_id": 806,
         "url": "https://github.com/osmandapp/Osmand",
         "fixed_commit": "376bc2217bb4c38809981fdcd3e8353a06d4c281",
@@ -12089,9 +12089,9 @@
         "var_attr": "anonymous variable",
         "is_interprocedural": false
     },
-    "Osmand_5": {
+    "Osmand_6": {
         "project": "Osmand",
-        "id": 5,
+        "id": 6,
         "overall_id": 807,
         "url": "https://github.com/osmandapp/Osmand",
         "fixed_commit": "385ebb8113b37c6affc0369ae0d44ee4b44cbe3b",
@@ -12104,9 +12104,9 @@
         "var_attr": "anonymous variable",
         "is_interprocedural": false
     },
-    "Osmand_6": {
+    "Osmand_7": {
         "project": "Osmand",
-        "id": 6,
+        "id": 7,
         "overall_id": 808,
         "url": "https://github.com/osmandapp/Osmand",
         "fixed_commit": "ce9584874f851c2def6bbc766482d12916934153",
