@@ -12,10 +12,15 @@ if __name__ == "__main__":
     if args.subcommand == 'info':
         cmd = 'info'
         sub_parser = argparse.ArgumentParser(prog=f'jleaks {cmd}',
-                                             usage=f'python3 -m jleaks info [-h|--help] [leak_id]',
+                                             usage=f'python3 -m jleaks info [-h|--help] [-i leak_id | -t leak_type]',
                                              description="Get information about the JLeaks dataset")
-        sub_parser.add_argument('-i','--leak-id', required=None, default=None, metavar='leak_id',
+        
+        option = sub_parser.add_mutually_exclusive_group(required=False)
+        option.add_argument('-i','--leak-id', metavar='leak_id',
                                 help='Get information about a specific leak by its ID (e.g. sql2o_1).'
+                                        'If not provided, print # of leaks per project.')
+        option.add_argument('-t','--leak-type', choices=['file', 'socket', 'thread'], metavar='leak_type',
+                                help='Get project counts for a specific leak type(file/socket/thread).'
                                         'If not provided, print # of leaks per project.')
         sub_args = sub_parser.parse_args(sys.argv[2:])
 
@@ -37,10 +42,12 @@ if __name__ == "__main__":
     # Execute subcommand
     if cmd == 'info':
         from . import info
-        if sub_args.leak_id is None:
-            info.print_projects()
-        else:
+        if sub_args.leak_type:
+            info.type_leak_projects(sub_args.leak_type)
+        elif sub_args.leak_id:
             info.print_leak_info(sub_args.leak_id)
+        else:
+            info.print_projects()
 
     elif cmd == 'checkout':
         from . import resources

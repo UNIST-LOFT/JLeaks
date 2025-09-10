@@ -1,3 +1,6 @@
 *.ipynb
 __pycache__
 .vscode
+
+# ignore project src
+project

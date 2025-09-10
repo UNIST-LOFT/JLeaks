@@ -94,6 +94,25 @@ class Project:
             
         def __str__(self):
             return self.value
+        
+    class BuildTool(Enum):
+        MAVEN = 'maven'
+        GRADLE = 'gradle'
+        ANT = 'ant'
+        UNKNOWN = 'unknown'
+
+        def from_str(label: str):
+            if label == 'maven':
+                return Project.BuildTool.MAVEN
+            elif label == 'gradle':
+                return Project.BuildTool.GRADLE
+            elif label == 'thread':
+                return Project.BuildTool.ANT
+            else:                
+                return Project.BuildTool.UNKNOWN
+
+        def __str__(self):
+            return self.value
             
     @staticmethod
     def from_data_dict(data: dict):
@@ -112,12 +131,13 @@ class Project:
             var_attr=data['var_attr'],
             std_lib=data['std_lib'],
             third_party_lib=data['third_party_lib'],
-            is_interprocedural=data['is_interprocedural']
+            is_interprocedural=data['is_interprocedural'],
+            build_tool=Project.BuildTool.from_str(data['build_tool'])
         )
 
     def __init__(self, project:str, id:int, jleaks_id:int, url:str, fixed_commit:str, buggy_file:str, buggy_method:str,
                  leak_type:str, root_cause:str, patch_pattern:str, var_attr:str, *,
-                 std_lib:str = '', third_party_lib:str = '', is_interprocedural:bool = False):
+                 std_lib:str = '', third_party_lib:str = '', is_interprocedural:bool = False, build_tool:str = ''):
         self.project = project
         self.id = id
         self.jleaks_id = jleaks_id
@@ -132,6 +152,7 @@ class Project:
         self.third_party_lib = third_party_lib
         self.var_attr = var_attr
         self.is_interprocedural = is_interprocedural
+        self.build_tool = build_tool
 
     def get_info(self):
         return f"""Leak ID:\t{self}
@@ -149,6 +170,7 @@ Used Standard Library:\t{self.std_lib if self.std_lib != '' else '-'}
 Used 3rd-Party Library:\t{self.third_party_lib if self.third_party_lib != '' else '-'}
 Variable Attribute:\t{self.var_attr}
 Inter-procedural?:\t{self.is_interprocedural}
+Build-Tool:\t{self.build_tool}
 """
     
     def __str__(self):
