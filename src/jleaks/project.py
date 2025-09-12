@@ -106,7 +106,7 @@ class Project:
                 return Project.BuildTool.MAVEN
             elif label == 'gradle':
                 return Project.BuildTool.GRADLE
-            elif label == 'thread':
+            elif label == 'ant':
                 return Project.BuildTool.ANT
             else:                
                 return Project.BuildTool.UNKNOWN
